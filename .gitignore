@@ -1,0 +1,5 @@
+node_modules/
+dist/
+src/examples/calculator/generated/
+*.log
+.DS_Store

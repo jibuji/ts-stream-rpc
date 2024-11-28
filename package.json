@@ -1,0 +1,54 @@
+{
+  "name": "ts-stream-rpc",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./rpc/*": {
+      "types": "./dist/rpc/*.d.ts",
+      "import": "./dist/rpc/*.js",
+      "default": "./dist/rpc/*.js"
+    },
+    "./generated/*": {
+      "types": "./dist/generated/*.d.ts",
+      "import": "./dist/generated/*.js",
+      "default": "./dist/generated/*.js"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "clean:examples": "rm -rf src/examples/calculator/generated",
+    "generate:examples": "npm run clean:examples && npm run generate:examples:proto && npm run generate:examples:service",
+    "generate:examples:proto": "mkdir -p src/examples/calculator/generated && pbjs -t static -w es6 --es6 -p src/examples/calculator/proto -o src/examples/calculator/generated/proto.js src/examples/calculator/proto/service.proto && pbts -o src/examples/calculator/generated/proto.d.ts src/examples/calculator/generated/proto.js && echo 'import $protobuf from \"protobufjs/minimal\";\n' | cat - src/examples/calculator/generated/proto.js > temp && mv temp src/examples/calculator/generated/proto.js",
+    "generate:examples:service": "node src/codegen/service-generator.js --proto src/examples/calculator/proto/service.proto --out src/examples/calculator/generated/calculator-service.ts",
+    "build": "npm run clean && tsc",
+    "build:examples": "npm run generate:examples && tsc -p tsconfig.examples.json",
+    "start": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/basic.ts",
+    "test-client": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/ws-client.ts",
+    "test-libp2p": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/libp2p-client.ts",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@chainsafe/libp2p-noise": "^16.0.0",
+    "@chainsafe/libp2p-yamux": "^7.0.1",
+    "@libp2p/tcp": "^10.0.13",
+    "@libp2p/websockets": "^9.0.13",
+    "@multiformats/multiaddr": "^12.3.3",
+    "libp2p": "^2.3.1",
+    "protobufjs": "^7.2.5",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
