@@ -1,25 +1,26 @@
 {
   "name": "ts-stream-rpc",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "RPC framework over duplex streams with Protocol Buffer support",
+  "author": "jibuji",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src/core",
+    "src/streams",
+    "src/codegen",
+    "LICENSE",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./rpc/*": {
-      "types": "./dist/rpc/*.d.ts",
-      "import": "./dist/rpc/*.js",
-      "default": "./dist/rpc/*.js"
-    },
-    "./generated/*": {
-      "types": "./dist/generated/*.d.ts",
-      "import": "./dist/generated/*.js",
-      "default": "./dist/generated/*.js"
     }
   },
   "scripts": {
@@ -50,5 +51,17 @@
     "@types/ws": "^8.5.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jibuji/ts-stream-rpc.git"
+  },
+  "keywords": [
+    "rpc",
+    "typescript",
+    "protobuf",
+    "stream",
+    "websocket",
+    "libp2p"
+  ]
 }
