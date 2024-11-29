@@ -2,11 +2,11 @@ import { createLibp2p } from 'libp2p'
 import { webSockets } from '@libp2p/websockets'
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { Libp2pStream } from '../../streams/libp2p-stream'
-import { RpcPeer } from '../../core/framework'
-import { CalculatorService } from '../calculator/services/calculator'
-import { calculator } from '../calculator/generated/proto'
-import { CalculatorClient, CalculatorWrapper } from '../calculator/generated/calculator-service'
+import { Libp2pStream } from 'ts-stream-rpc'
+import { RpcPeer } from 'ts-stream-rpc'
+import { CalculatorService } from '../services/calculator'
+import { calculator } from '../generated/calculator.proto'
+import { CalculatorClient, CalculatorWrapper } from '../generated/calculator-service'
 
 async function main() {
   const node = await createLibp2p({

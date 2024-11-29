@@ -10,6 +10,7 @@ A TypeScript RPC framework that operates over duplex streams with Protocol Buffe
 - 🛠 Code generation tools for service implementation
 - 📝 Type-safe APIs
 - ⚡ Async/await support
+- 🖥️ Easy-to-use CLI tool
 
 ## Installation
 
@@ -25,6 +26,8 @@ Create a Protocol Buffer definition for your service (e.g., `service.proto`):
 
 ```protobuf
 syntax = "proto3";
+
+package myapp;  // Package declaration is mandatory
 
 service Calculator {
   rpc Add (AddRequest) returns (AddResponse);
@@ -42,13 +45,26 @@ message AddResponse {
 
 ### 2. Generate Service Code
 
-You can generate the TypeScript service code using the provided code generation tool:
+You can generate the TypeScript service code using the CLI tool:
 
 ```bash
-node node_modules/ts-stream-rpc/src/codegen/service-generator.js --proto path/to/service.proto --out generated/calculator-service.ts
+# Generate code from a single proto file
+ts-stream-rpc generate path/to/service.proto -o ./generated
+
+# Generate code from a directory containing proto files
+ts-stream-rpc generate ./proto -o ./generated
 ```
 
-Note: Make sure to also generate Protocol Buffer code using `protobufjs`.
+The CLI tool will:
+1. Validate your proto files (ensuring they have package declarations)
+2. Generate Protocol Buffer JavaScript and TypeScript definitions
+3. Generate service interfaces and client code
+4. Create all necessary type definitions
+
+For each proto file, three files will be generated:
+- `[name].proto.js` - Protocol Buffer JavaScript code
+- `[name].proto.d.ts` - Protocol Buffer TypeScript definitions
+- `[name]-service.ts` - Service interfaces and client code
 
 ### 3. Implement the Service
 

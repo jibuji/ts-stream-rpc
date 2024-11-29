@@ -2,7 +2,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { WebSocketStream } from '../../streams/websocket-stream';
 import { RpcPeer } from '../../core/framework';
 import { CalculatorService } from '../calculator/services/calculator';
-import { calculator } from '../calculator/generated/proto';
+import { calculator } from '../calculator/generated/calculator.proto';
 import { CalculatorWrapper } from '../calculator/generated/calculator-service';
 async function main() {
   console.log("calculator: ", calculator);

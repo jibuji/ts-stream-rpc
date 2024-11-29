@@ -1,6 +1,6 @@
 {
   "name": "ts-stream-rpc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "RPC framework over duplex streams with Protocol Buffer support",
   "author": "jibuji",
   "license": "MIT",
@@ -8,11 +8,15 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "ts-stream-rpc": "./dist/cli/index.js"
+  },
   "files": [
     "dist",
     "src/core",
     "src/streams",
     "src/codegen",
+    "src/cli",
     "LICENSE",
     "README.md"
   ],
@@ -26,15 +30,14 @@
   "scripts": {
     "clean": "rm -rf dist",
     "clean:examples": "rm -rf src/examples/calculator/generated",
-    "generate:examples": "npm run clean:examples && npm run generate:examples:proto && npm run generate:examples:service",
-    "generate:examples:proto": "mkdir -p src/examples/calculator/generated && pbjs -t static -w es6 --es6 -p src/examples/calculator/proto -o src/examples/calculator/generated/proto.js src/examples/calculator/proto/service.proto && pbts -o src/examples/calculator/generated/proto.d.ts src/examples/calculator/generated/proto.js && echo 'import $protobuf from \"protobufjs/minimal\";\n' | cat - src/examples/calculator/generated/proto.js > temp && mv temp src/examples/calculator/generated/proto.js",
-    "generate:examples:service": "node src/codegen/service-generator.js --proto src/examples/calculator/proto/service.proto --out src/examples/calculator/generated/calculator-service.ts",
+    "generate:examples": "npm run clean:examples && mkdir -p src/examples/calculator/generated && node --loader ts-node/esm src/cli/index.ts generate src/examples/calculator/proto/calculator.proto -o src/examples/calculator/generated",
     "build": "npm run clean && tsc",
     "build:examples": "npm run generate:examples && tsc -p tsconfig.examples.json",
-    "start": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/basic.ts",
-    "test-client": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/ws-client.ts",
-    "test-libp2p": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/libp2p-client.ts",
-    "prepare": "npm run build"
+    "start": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/basic.ts",
+    "test-client": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/ts-client-go-server.ts",
+    "test-libp2p": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/libp2p/ts-server-go-client-libp2p.ts",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build && chmod +x ./dist/cli/index.js"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^16.0.0",
@@ -42,8 +45,12 @@
     "@libp2p/tcp": "^10.0.13",
     "@libp2p/websockets": "^9.0.13",
     "@multiformats/multiaddr": "^12.3.3",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "glob": "^10.3.10",
     "libp2p": "^2.3.1",
     "protobufjs": "^7.2.5",
+    "protobufjs-cli": "^1.1.2",
     "ws": "^8.16.0"
   },
   "devDependencies": {
@@ -62,6 +69,10 @@
     "protobuf",
     "stream",
     "websocket",
-    "libp2p"
-  ]
+    "libp2p",
+    "cli"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }

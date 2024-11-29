@@ -38,10 +38,26 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
-function generateServiceInterface(service, outputPath) {
-  let code = `import { DuplexStream } from '../streams/types.js';\n`;
-  code += `import { RpcPeer } from '../core/framework.js';\n`;
-  code += `import { calculator } from '../generated/proto.js';\n\n`;
+function getPackageName(root) {
+  // Get the package name from the proto file
+  const packages = [];
+  for (const namespace of root.nestedArray || []) {
+    if (namespace instanceof protobuf.Namespace) {
+      packages.push(namespace.name);
+    }
+  }
+  return packages[0] || 'proto'; // Default to 'proto' if no package found
+}
+
+function generateServiceInterface(service, outputPath, packageName) {
+  const protoImportPath = path.join(
+    path.relative(path.dirname(outputPath), path.dirname(outputPath)),
+    `${path.basename(outputPath, '-service.ts')}.proto`
+  ).replace(/\\/g, '/');
+
+  let code = `import { DuplexStream } from 'ts-stream-rpc';\n`;
+  code += `import { RpcPeer } from 'ts-stream-rpc';\n`;
+  code += `import { ${packageName} } from './${protoImportPath}';\n\n`;
 
   // Generate interfaces for request/response types
   service.methodsArray.forEach(method => {
@@ -89,8 +105,8 @@ function generateServiceInterface(service, outputPath) {
     const inputTypeName = service.lookup(method.requestType).name;
     const outputTypeName = service.lookup(method.responseType).name;
     code += `  async ${methodName}(request: ${inputTypeName}): Promise<${outputTypeName}> {\n`;
-    code += `    const requestBytes = calculator.${inputTypeName}.encode(request).finish();\n`;
-    code += `    const response = await this.peer.call<${outputTypeName}>('${service.name}.${method.name}', requestBytes, calculator.${outputTypeName});\n`;
+    code += `    const requestBytes = ${packageName}.${inputTypeName}.encode(request).finish();\n`;
+    code += `    const response = await this.peer.call<${outputTypeName}>('${service.name}.${method.name}', requestBytes, ${packageName}.${outputTypeName});\n`;
     code += `    return response;\n`;
     code += `  }\n\n`;
   });
@@ -105,9 +121,9 @@ function generateServiceInterface(service, outputPath) {
     const inputTypeName = service.lookup(method.requestType).name;
     const outputTypeName = service.lookup(method.responseType).name;
     code += `  async ${methodName}(requestBytes: Uint8Array): Promise<Uint8Array> {\n`;
-    code += `    const request = calculator.${inputTypeName}.decode(requestBytes);\n`;
+    code += `    const request = ${packageName}.${inputTypeName}.decode(requestBytes);\n`;
     code += `    const response = await this.service.${methodName}(request);\n`;
-    code += `    return calculator.${outputTypeName}.encode(response).finish();\n`;
+    code += `    return ${packageName}.${outputTypeName}.encode(response).finish();\n`;
     code += `  }\n`;
   });
   code += `}\n`;
@@ -141,6 +157,9 @@ root.load(protoPath, { keepCase: true })
     // Load and resolve the proto file
     root = root.resolveAll();
     
+    // Get package name from proto file
+    const packageName = getPackageName(root);
+    
     // Get all services from the root
     const services = [];
     for (const namespace of root.nestedArray || []) {
@@ -161,7 +180,7 @@ root.load(protoPath, { keepCase: true })
     
     // Generate for each service found
     for (const service of services) {
-      generateServiceInterface(service, outputPath);
+      generateServiceInterface(service, outputPath, packageName);
       console.log(`Generated service interface for ${service.name} at ${outputPath}`);
     }
   })

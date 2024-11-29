@@ -1,9 +1,9 @@
 import { WebSocket } from 'ws';
-import { WebSocketStream } from '../../streams/websocket-stream';
-import { RpcPeer } from '../../core/framework';
-import { calculator } from '../calculator/generated/proto';
-import { CalculatorService } from '../calculator/services/calculator';
-import { CalculatorWrapper } from '../calculator/generated/calculator-service';
+import { WebSocketStream } from '../../../streams/websocket-stream';
+import { RpcPeer } from '../../../core/framework';
+import { calculator } from '../generated/calculator.proto';
+import { CalculatorService } from '../services/calculator';
+import { CalculatorWrapper } from '../generated/calculator-service';
 
 async function main() {
   // Client
