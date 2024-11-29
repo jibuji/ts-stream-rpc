@@ -49,10 +49,10 @@ You can generate the TypeScript service code using the CLI tool:
 
 ```bash
 # Generate code from a single proto file
-ts-stream-rpc generate path/to/service.proto -o ./generated
+npx ts-stream-rpc generate path/to/service.proto -o ./generated
 
 # Generate code from a directory containing proto files
-ts-stream-rpc generate ./proto -o ./generated
+npx ts-stream-rpc generate ./proto -o ./generated
 ```
 
 The CLI tool will:
@@ -83,7 +83,7 @@ class CalculatorService implements ICalculator {
 ### 4. Create a Server
 
 ```typescript
-import { RpcPeer } from 'ts-stream-rpc';
+import { RpcPeer, WebSocketStream } from 'ts-stream-rpc';
 import { WebSocket, WebSocketServer } from 'ws';
 import { CalculatorService, CalculatorWrapper } from './generated/calculator-service';
 
@@ -92,28 +92,26 @@ const service = new CalculatorService();
 const wrapper = new CalculatorWrapper(service);
 
 wss.on('connection', (ws: WebSocket) => {
-  const peer = new RpcPeer();
+  const stream = new WebSocketStream(ws);
+  const peer = new RpcPeer(stream);
   
   // Register service methods
-  peer.register('Calculator.Add', wrapper.add.bind(wrapper));
+  peer.registerService('Calculator', wrapper);
   
-  // Connect the WebSocket stream
-  peer.connect(ws);
 });
 ```
 
 ### 5. Create a Client
 
 ```typescript
-import { RpcPeer } from 'ts-stream-rpc';
+import { RpcPeer, WebSocketStream } from 'ts-stream-rpc';
 import { WebSocket } from 'ws';
 import { CalculatorClient } from './generated/calculator-service';
 
 const ws = new WebSocket('ws://localhost:8080');
-const peer = new RpcPeer();
+const stream = new WebSocketStream(ws);
+const peer = new RpcPeer(stream);
 const client = new CalculatorClient(peer);
-
-peer.connect(ws);
 
 // Make RPC calls
 const result = await client.add({ a: 5, b: 3 });
@@ -135,40 +133,20 @@ import { createLibp2p } from 'libp2p';
 import { noise } from '@chainsafe/libp2p-noise';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { tcp } from '@libp2p/tcp';
-import { RpcPeer } from 'ts-stream-rpc';
+import { RpcPeer, Libp2pStream } from 'ts-stream-rpc';
 
 const node = await createLibp2p({
   addresses: {
     listen: ['/ip4/127.0.0.1/tcp/0']
   },
   transports: [tcp()],
-  connectionEncryption: [noise()],
+  connectionEncrypters: [noise()],
   streamMuxers: [yamux()]
 });
 
-const peer = new RpcPeer();
-// Connect using LibP2P stream
-peer.connect(stream);
+const stream = new Libp2pStream(node);
+const peer = new RpcPeer(stream);
 ```
-
-## Code Generation Tool
-
-The package includes a code generation tool that creates TypeScript interfaces and client code from your Protocol Buffer definitions. The tool is located at `src/codegen/service-generator.js`.
-
-Usage:
-```bash
-node node_modules/ts-stream-rpc/src/codegen/service-generator.js --proto <proto_file> --out <output_file>
-```
-
-Arguments:
-- `--proto`: Path to your Protocol Buffer definition file
-- `--out`: Output path for the generated TypeScript code
-
-The generated code includes:
-- TypeScript interfaces for request/response types
-- Service interface definition
-- Client implementation
-- Service wrapper for server-side implementation
 
 ## Contributing
 
