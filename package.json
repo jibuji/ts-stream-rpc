@@ -1,6 +1,6 @@
 {
   "name": "ts-stream-rpc",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "RPC framework over duplex streams with Protocol Buffer support",
   "author": "jibuji",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "clean": "rm -rf dist",
     "clean:examples": "rm -rf src/examples/calculator/generated",
     "generate:examples": "npm run clean:examples && mkdir -p src/examples/calculator/generated && node --loader ts-node/esm src/cli/index.ts generate src/examples/calculator/proto/calculator.proto -o src/examples/calculator/generated",
-    "build": "npm run clean && tsc && cp src/codegen/service-generator.js dist/codegen/",
+    "build": "npm run clean && tsc && mkdir -p dist/codegen && cp src/codegen/service-generator.js dist/codegen/",
     "build:examples": "npm run generate:examples && tsc -p tsconfig.examples.json",
     "start": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/basic.ts",
     "test-client": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/ts-client-go-server.ts",
