@@ -49,10 +49,15 @@ async function main() {
           const response = await calculatorClient.add(requestParams)
           
           console.log(`Client requested: ${requestParams.a} + ${requestParams.b} = ${response.result}`)
+
+          const requestParams2 = {a: 3, b: 4}
+          const response2 = await calculatorClient.multiply(requestParams2)
+          
+          console.log(`Client requested: ${requestParams2.a} * ${requestParams2.b} = ${response2.result}`)
         } catch (error) {
           console.error('Error making RPC call:', error)
         }
-      }, 3000)
+      }, 5000)
 
       peer.setStreamCloseHandler((error) => {
         clearInterval(interval)
