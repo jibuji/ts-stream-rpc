@@ -3,12 +3,27 @@ import { DuplexStream } from '../streams/types.js';
 
 const REQUEST_ID_MSB = 0x80000000;  // Most significant bit mask
 const REQUEST_ID_MASK = 0x7fffffff;  // Mask for actual request ID value
+const ERROR_RESPONSE_MSB = 0x40000000; // Second most significant bit for error responses
+
+const enum ErrorCode {
+  Unknown = 0,
+  MethodNotFound = 1,
+  InvalidRequest = 2,
+  MalformedRequest = 3,
+  InvalidMessageFormat = 4,
+  InternalError = 5,
+}
 
 interface Message {
   requestId: number;
   length: number;
   methodName: string;
   payload: Uint8Array;
+}
+
+interface FrameworkError {
+  code: ErrorCode;
+  message: string;
 }
 
 export class RpcPeer {
@@ -70,19 +85,27 @@ export class RpcPeer {
       try {
         const message = await this.readMessage();
         const isResponse = (message.requestId & REQUEST_ID_MSB) !== 0;
-
+        const isErrorResponse = (message.requestId & ERROR_RESPONSE_MSB) !== 0;
+        
         if (isResponse) {
-          // Handle response
           const originalRequestId = message.requestId & REQUEST_ID_MASK;
           const pending = this.pendingRequests.get(originalRequestId);
+          
           if (pending) {
             this.pendingRequests.delete(originalRequestId);
-            try {
-              const response = pending.ResponseType.decode(message.payload);
-              pending.resolve(response);
-            } catch (error) {
-              const errorMessage = new TextDecoder().decode(message.payload);
-              pending.reject(new Error(errorMessage));
+            
+            if (isErrorResponse) {
+              // Handle framework error response
+              const errorCode = new DataView(message.payload.buffer, 0, 4).getUint32(0);
+              const errorMessage = new TextDecoder().decode(message.payload.slice(4));
+              pending.reject(new Error(`Framework error (${errorCode}): ${errorMessage}`));
+            } else {
+              try {
+                const response = pending.ResponseType.decode(message.payload);
+                pending.resolve(response);
+              } catch (error: unknown) {
+                pending.reject(new Error(`Failed to decode response: ${error instanceof Error ? error.message : String(error)}`));
+              }
             }
           }
         } else {
@@ -106,23 +129,32 @@ export class RpcPeer {
       const [serviceName, methodName] = message.methodName.split('.');
       const service = this.services.get(serviceName);
       if (!service) {
-        throw new Error(`Service ${serviceName} not found`);
+        await this.writeErrorResponse(message.requestId, {
+          code: ErrorCode.MethodNotFound,
+          message: `Service ${serviceName} not found`
+        });
+        return;
       }
 
       const methodNameCamelCase = methodName.charAt(0).toLowerCase() + methodName.slice(1);
       const method = service[methodNameCamelCase];
       
       if (typeof method !== 'function') {
-        throw new Error(`Method ${methodName} not found`);
+        await this.writeErrorResponse(message.requestId, {
+          code: ErrorCode.MethodNotFound,
+          message: `Method ${methodName} not found`
+        });
+        return;
       }
 
       const response = await method.call(service, message.payload);
       await this.writeResponse(message.requestId, response);
     } catch (error) {
       console.error('Error processing request:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorResponse = new TextEncoder().encode(errorMessage);
-      await this.writeResponse(message.requestId, errorResponse);
+      await this.writeErrorResponse(message.requestId, {
+        code: ErrorCode.InternalError,
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -130,15 +162,24 @@ export class RpcPeer {
     const lengthBuffer = new Uint8Array(4);
     await this.stream.readFull(lengthBuffer);
     const length = new DataView(lengthBuffer.buffer).getUint32(0);
+    
     const requestIdBuffer = new Uint8Array(4);
     await this.stream.readFull(requestIdBuffer);
     const requestId = new DataView(requestIdBuffer.buffer).getUint32(0);
 
+    const isResponse = (requestId & REQUEST_ID_MSB) !== 0;
+    const isErrorResponse = (requestId & ERROR_RESPONSE_MSB) !== 0;
+
     let methodName = '';
     let payloadLength = length - 4; // -4 for requestId
 
-    // If it's a request (MSB not set), read method name
-    if ((requestId & REQUEST_ID_MSB) === 0) {
+    if (isErrorResponse) {
+      // Read error code and message
+      const errorCodeBuffer = new Uint8Array(4);
+      await this.stream.readFull(errorCodeBuffer);
+      payloadLength = length - 8; // -8 for requestId and error code
+    } else if (!isResponse) {
+      // Regular request handling
       const methodLenBuffer = new Uint8Array(1);
       await this.stream.readFull(methodLenBuffer);
       const methodNameLength = methodLenBuffer[0];
@@ -147,7 +188,7 @@ export class RpcPeer {
       await this.stream.readFull(methodNameBuffer);
       methodName = new TextDecoder().decode(methodNameBuffer);
       
-      payloadLength = length - methodNameLength - 5; // -5 for requestId and method name length
+      payloadLength = length - methodNameLength - 5;
     }
 
     const payloadBuffer = new Uint8Array(payloadLength);
@@ -191,5 +232,25 @@ export class RpcPeer {
     await this.stream.write(responseIdBuffer);
 
     await this.stream.write(payload);
+  }
+
+  private async writeErrorResponse(requestId: number, error: FrameworkError): Promise<void> {
+    const responseId = requestId | REQUEST_ID_MSB | ERROR_RESPONSE_MSB;
+    const messageBytes = new TextEncoder().encode(error.message);
+    const totalLength = 8 + messageBytes.length; // 4 for requestId + 4 for error code + message length
+
+    const lengthBuffer = new Uint8Array(4);
+    new DataView(lengthBuffer.buffer).setUint32(0, totalLength);
+    await this.stream.write(lengthBuffer);
+
+    const responseIdBuffer = new Uint8Array(4);
+    new DataView(responseIdBuffer.buffer).setUint32(0, responseId);
+    await this.stream.write(responseIdBuffer);
+
+    const errorCodeBuffer = new Uint8Array(4);
+    new DataView(errorCodeBuffer.buffer).setUint32(0, error.code);
+    await this.stream.write(errorCodeBuffer);
+
+    await this.stream.write(messageBytes);
   }
 }

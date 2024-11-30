@@ -1,6 +1,6 @@
 {
   "name": "ts-stream-rpc",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "RPC framework over duplex streams with Protocol Buffer support",
   "author": "jibuji",
   "license": "MIT",

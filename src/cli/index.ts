@@ -13,6 +13,50 @@ const __dirname = path.dirname(__filename);
 
 const program = new Command();
 
+// Add detailed documentation about the tool
+const TOOL_DESCRIPTION = `
+TypeScript RPC Code Generator
+
+This tool generates TypeScript code from Protocol Buffer (.proto) definitions for use with the ts-stream-rpc framework.
+
+Input:
+  - Protocol Buffer (.proto) files that define your services and messages
+  - Must include a package declaration (e.g., 'package myapp;')
+  - Must define at least one service with RPC methods
+
+Output:
+  For each input .proto file, generates three files in the output directory:
+  1. {name}.proto.js         - JavaScript Protocol Buffer runtime code
+  2. {name}.proto.d.ts       - TypeScript definitions for Protocol Buffer types
+  3. {name}-service.ts       - TypeScript service interfaces and implementations
+
+Example Usage:
+  # Generate code from a single proto file
+  ts-stream-rpc generate path/to/service.proto -o ./generated
+
+  # Generate code from all proto files in a directory
+  ts-stream-rpc generate ./proto -o ./generated
+
+Directory Structure Example:
+  myproject/
+  ├── proto/
+  │   └── calculator.proto    # Input proto file
+  └── generated/             # Output directory
+      ├── calculator.proto.js
+      ├── calculator.proto.d.ts
+      └── calculator-service.ts
+
+Proto File Requirements:
+  - Must include a package declaration
+  - Service methods should use request/response message types
+  - Example:
+    package calculator;
+    
+    service Calculator {
+      rpc Add(AddRequest) returns (AddResponse);
+    }
+`;
+
 function validateProtoPackage(protoPath: string): boolean {
   const content = fs.readFileSync(protoPath, 'utf-8');
   return content.includes('package');
@@ -71,7 +115,7 @@ function generateCode(protoPath: string, outDir: string) {
 
 program
   .name('ts-stream-rpc')
-  .description('CLI tool for ts-stream-rpc code generation')
+  .description(TOOL_DESCRIPTION)
   .version('1.0.0');
 
 program
@@ -79,6 +123,18 @@ program
   .description('Generate TypeScript code from Protocol Buffer definitions')
   .argument('<source>', 'Proto file or directory containing .proto files')
   .option('-o, --out <directory>', 'Output directory for generated files', './generated')
+  .addHelpText('after', `
+Examples:
+  $ ts-stream-rpc generate service.proto
+  $ ts-stream-rpc generate service.proto -o ./src/generated
+  $ ts-stream-rpc generate ./proto -o ./src/generated
+
+Notes:
+  - Requires protoc compiler to be installed
+  - Generated code depends on protobufjs library
+  - Output directory will be created if it doesn't exist
+  - Existing files in output directory will be overwritten
+  `)
   .action((source, options) => {
     try {
       if (fs.statSync(source).isDirectory()) {
