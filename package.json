@@ -33,7 +33,7 @@
     "generate:examples": "npm run clean:examples && mkdir -p src/examples/calculator/generated && node --loader ts-node/esm src/cli/index.ts generate src/examples/calculator/proto/calculator.proto -o src/examples/calculator/generated",
     "build": "npm run clean && tsc && mkdir -p dist/codegen && cp src/codegen/service-generator.js dist/codegen/",
     "build:examples": "npm run generate:examples && tsc -p tsconfig.examples.json",
-    "start": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/basic.ts",
+    "start": "npm run build:examples && node --experimental-specifier-resolution=node --loader ts-node/esm src/examples/basic/example.ts",
     "test-client": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/ts-client-go-server.ts",
     "test-libp2p": "npm run build:examples && node --loader ts-node/esm --experimental-specifier-resolution=node src/examples/calculator/libp2p/ts-server-go-client-libp2p.ts",
     "prepare": "npm run build && chmod +x ./dist/cli/index.js",
